@@ -7,6 +7,7 @@ using Newtonsoft.Json;
 using System.Diagnostics;
 using System.Windows.Forms;
 using System.Text.RegularExpressions;
+using Autodesk.Revit.DB.Architecture;
 
 namespace RevitAPI_test
 {
@@ -96,12 +97,46 @@ namespace RevitAPI_test
                         }
                     }
                 }
+                else if (element is Stairs stairs)
+                {
+                    elementInfo["Stairs Type"] = stairs.GetType().Name;
+                    hasElementType = true;
+                    foreach (Parameter param in stairs.Parameters)
+                    {
+                        string paramName = param.Definition.Name;
+                        string paramValue = param.AsValueString() ?? param.AsString();
+                        if (!string.IsNullOrEmpty(paramValue))
+                        {
+                            elementInfo[paramName] = paramValue;
+                        }
+                    }
+                }
+                else if (element.Category.Id.IntegerValue == (int)BuiltInCategory.OST_Railings ||
+                         element.Category.Id.IntegerValue == (int)BuiltInCategory.OST_StairsRailing)
+                {
+                    elementInfo["Type"] = "Handrail/Railing";
+                    hasElementType = true;
+
+                    foreach (Parameter param in element.Parameters)
+                    {
+                        string paramName = param.Definition.Name;
+                        string paramValue = param.AsValueString() ?? param.AsString();
+                        if (!string.IsNullOrEmpty(paramValue))
+                        {
+                            elementInfo[paramName] = paramValue;
+                        }
+                    }
+                }
 
                 StringBuilder displayInfo = new StringBuilder();
                 foreach (var info in elementInfo)
                 {
                     displayInfo.AppendLine($"{info.Key}: {info.Value}");
                 }
+
+                // Display element information in a message box
+                // MessageBox.Show(displayInfo.ToString(), "Element Information");
+
                 string json = JsonConvert.SerializeObject(elementInfo, Formatting.Indented);
                 // Replace illegal characters in category name
                 string sanitizedCategory = Regex.Replace(elementInfo["Category"], @"[<>:""/\\|?*]", "_");
